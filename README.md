@@ -1,7 +1,7 @@
 # 🕸️ Cymatic Indra
 **Self-Organizing Topological Intelligence & Emergent Coherence**
 
-> *"The Net is infinite, and the reflections are eternal."*
+
 
 **Cymatic Indra** is a biomimetic simulation engine designed to explore **morphogenesis**, **synchronization**, and **ontological resilience**. Inspired by the Buddhist metaphor of *Indra's Net* and the physics of cymatics, the system treats data not as discrete tokens, but as vibratory frequencies that "crystallize" into topological invariants on a reactive manifold.
 
