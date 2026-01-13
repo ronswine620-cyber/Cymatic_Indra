@@ -28,10 +28,35 @@ except ImportError:
         sys.exit(1)
 
 
+TUNING_PROFILES = {
+    "LIQUID": {  # Your current "breathing" state
+        'window_size': 32,
+        'damping_factor': 0.6,
+        'phase_wrap_thresh': 2.0,
+        'coupling_strength': 0.1,
+        'plasticity_rate': 0.05
+    },
+    "CRYSTAL": {  # Forces rapid consensus (Hive Mind)
+        'window_size': 16,        # Smaller window = faster reaction
+        'damping_factor': 0.8,    # High damping = strong phase forcing
+        'phase_wrap_thresh': 3.0, # Very permissible (listens to everyone)
+        'coupling_strength': 0.8, # High coupling = forced sync
+        'plasticity_rate': 0.2    # Manifold hardens quickly
+    },
+    "CHAOS": {  # High noise, zero memory
+        'window_size': 64,        # Huge window = slow to react
+        'damping_factor': 0.9,    # High damping = signals die instantly
+        'phase_wrap_thresh': 0.5, # Strict = ignores almost everyone
+        'coupling_strength': 0.01,# Tiny coupling = almost no influence
+        'plasticity_rate': 0.0    # Manifold never learns
+    }
+}
+
+
 class SimulationRunner:
     """Manages simulation execution and data export"""
     
-    def __init__(self, n_agents=20, dimensions=12, num_steps=300):
+    def __init__(self, n_agents=20, dimensions=12, num_steps=300, profile="LIQUID"):
         """
         Initialize the runner
         
@@ -39,18 +64,16 @@ class SimulationRunner:
             n_agents: Number of oscillators
             dimensions: Dimensionality of oscillator space
             num_steps: Number of simulation steps to run
+            profile: Name of the tuning profile to use
         """
         self.n_agents = n_agents
         self.dimensions = dimensions
         self.num_steps = num_steps
         self.results_dir = Path("results")
-        self.config = {
-            'window_size': 32,
-            'damping_factor': 0.6,
-            'phase_wrap_thresh': 2.0,
-            'coupling_strength': 0.1,
-            'plasticity_rate': 0.05
-        }
+        
+        # Load the selected profile, default to LIQUID if not found
+        self.config = TUNING_PROFILES.get(profile, TUNING_PROFILES["LIQUID"])
+        self.profile_name = profile
         
         # Create results directory if needed
         self.results_dir.mkdir(exist_ok=True)
@@ -118,6 +141,11 @@ class SimulationRunner:
             raw_signals = [j.resonate(plate_resonance) for j in jewels]
             results = spider.step(raw_signals)
             
+            # Close the loop! (Apply phase corrections)
+            corrections = results.get('phase_corrections', np.zeros(self.n_agents))
+            for i, jewel in enumerate(jewels):
+                jewel.sync_phase(corrections[i])
+            
             # Update manifold
             if np.any(results['feedback']):
                 plate.imprint(results['feedback'], force=0.15)
@@ -181,6 +209,7 @@ class SimulationRunner:
         export_data = {
             'metadata': {
                 'timestamp': datetime.now().isoformat(),
+                'profile': self.profile_name,
                 'n_agents': self.n_agents,
                 'dimensions': self.dimensions,
                 'num_steps': self.num_steps,
@@ -251,7 +280,9 @@ class SimulationRunner:
                 with open(sim_file, 'r') as f:
                     data = json.load(f)
                     stats = data.get('statistics', {})
+                    meta = data.get('metadata', {})
                     print(f"  {run_dir.name}")
+                    print(f"    Profile: {meta.get('profile', 'N/A')}")
                     print(f"    Max Coherence: {stats.get('max_coherence', 'N/A'):.3f}")
                     print(f"    Avg Coherence: {stats.get('avg_coherence', 'N/A'):.3f}")
                     print(f"    Crystallizations: {stats.get('crystallization_events', 'N/A')}")
@@ -261,19 +292,16 @@ class SimulationRunner:
 
 
 if __name__ == '__main__':
-    # Create runner
-    runner = SimulationRunner(
-        n_agents=20,
-        dimensions=12,
-        num_steps=300
-    )
-    
-    # Run single simulation
-    run_dir, stats = runner.run_simulation()
-    
-    # Optional: Run multiple simulations
-    # for i in range(3):
-    #     runner.run_simulation(run_name=f"experiment_{i+1}")
+    # Compare all 3 states
+    for profile_name in ["LIQUID", "CRYSTAL", "CHAOS"]:
+        print(f"\n--- Running Profile: {profile_name} ---")
+        runner = SimulationRunner(
+            n_agents=20, 
+            dimensions=12, 
+            num_steps=300, 
+            profile=profile_name
+        )
+        runner.run_simulation(run_name=f"experiment_{profile_name}")
     
     # List all completed runs
-    runner.list_runs()
+    SimulationRunner().list_runs()

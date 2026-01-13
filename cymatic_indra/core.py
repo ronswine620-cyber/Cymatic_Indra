@@ -77,7 +77,10 @@ class IndraEngine:
         self.coherence = np.abs(z)
         
         # Adaptive cooling: As coherence increases, coupling decreases
+        # Adaptive cooling: As coherence increases, coupling decreases
         adaptive_coup = self.config['coupling_strength'] * (1.1 - self.coherence)
+
+        updates = np.zeros_like(phases)
 
         for i in range(self.N):
             influence = 0.0
@@ -100,9 +103,10 @@ class IndraEngine:
 
             # Apply Damping (Viscosity)
             update = adaptive_coup * influence * self.config['damping_factor']
+            updates[i] = update
             new_phases[i] = (phases[i] + update) % (2*np.pi)
             
-        return new_phases
+        return new_phases, updates
 
     # --- Master Cycle ---
     def step(self, inputs):
@@ -124,7 +128,7 @@ class IndraEngine:
         current_phases = np.array([b[-1][0] * np.pi for b in self.buffers]) 
         
         # 3. Crystallize (Phase Lock)
-        next_phases = self._phase_lock(current_phases)
+        next_phases, corrections = self._phase_lock(current_phases)
         
         # 4. Feedback Vector (What gets written back to the Manifold)
         # If coherence is high, we reinforce this structure
@@ -136,6 +140,7 @@ class IndraEngine:
             
         return {
             'phases': next_phases,
+            'phase_corrections': corrections,
             'coherence': self.coherence,
             'feedback': feedback
         }

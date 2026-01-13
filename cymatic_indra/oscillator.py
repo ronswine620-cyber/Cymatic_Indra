@@ -39,3 +39,11 @@ class IndraOscillator:
         signal += 0.05 * self.rng.normal(size=self.dim)
         
         return signal.astype(np.float64)
+
+    def sync_phase(self, correction):
+        """
+        Adjusts the internal phase based on the Engine's feedback.
+        correction: Scalar phase shift (radians)
+        """
+        # Apply correction to all dimensions to maintain relative harmonic structure
+        self.phase = (self.phase + correction) % (2*np.pi)
