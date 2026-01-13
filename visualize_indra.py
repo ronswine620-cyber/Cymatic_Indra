@@ -92,12 +92,17 @@ def update(frame):
         plate.imprint(results['feedback'], force=0.15)
         
     # --- B. Visual Update 1: Jewels ---
-    phases = results['phases']
+    phases = np.array(results['phases'], dtype=float)
+    # Ensure we have valid data
+    if len(phases) == 0:
+        phases = np.zeros(N_AGENTS)
+    
     # Jitter radius slightly for "living" organic feel
     radii = np.ones(N_AGENTS) + np.random.uniform(-0.02, 0.02, N_AGENTS)
     
     # Update positions (Theta, R) and colors
-    scat.set_offsets(np.vstack((phases, radii)).T)
+    offsets = np.column_stack((phases, radii))
+    scat.set_offsets(offsets)
     scat.set_array(phases)
     
     # --- C. Visual Update 2: Plate ---
@@ -135,15 +140,15 @@ print(f"Initializing Cymatic Indra Visualization ({'HEADLESS' if HEADLESS else '
 ani = FuncAnimation(fig, update, init_func=init, frames=300, interval=50, blit=False)
 
 if HEADLESS:
-    output_path = 'indra_morphogenesis.mp4'
+    output_path = 'indra_morphogenesis.gif'
     print(f"Rendering simulation to {output_path}...")
     try:
-        # Requires ffmpeg installed on system
-        ani.save(output_path, writer='ffmpeg', fps=20, dpi=100)
+        # Use pillow for GIF (more portable than ffmpeg)
+        ani.save(output_path, writer='pillow', fps=20, dpi=80)
         print("Render complete.")
     except Exception as e:
         print(f"\nError saving animation: {e}")
-        print("Tip: Install ffmpeg or try saving as .gif using writer='pillow'")
+        print("Tip: Try installing ffmpeg for MP4 output")
 else:
     plt.tight_layout(pad=3.0)
     plt.show()
