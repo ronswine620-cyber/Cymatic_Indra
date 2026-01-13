@@ -34,21 +34,30 @@ TUNING_PROFILES = {
         'damping_factor': 0.6,
         'phase_wrap_thresh': 2.0,
         'coupling_strength': 0.1,
-        'plasticity_rate': 0.05
+        'plasticity_rate': 0.05,
+        'gardening_interval': 10,
+        'prune_thresh': 0.1,
+        'grow_prob': 0.01
     },
     "CRYSTAL": {  # Forces rapid consensus (Hive Mind)
         'window_size': 16,        # Smaller window = faster reaction
         'damping_factor': 0.8,    # High damping = strong phase forcing
         'phase_wrap_thresh': 3.0, # Very permissible (listens to everyone)
         'coupling_strength': 0.8, # High coupling = forced sync
-        'plasticity_rate': 0.2    # Manifold hardens quickly
+        'plasticity_rate': 0.2,   # Manifold hardens quickly
+        'gardening_interval': 5,  # Aggressive gardening
+        'prune_thresh': 0.2,      # Strict pruning
+        'grow_prob': 0.05         # Fast growth
     },
     "CHAOS": {  # High noise, zero memory
         'window_size': 64,        # Huge window = slow to react
         'damping_factor': 0.9,    # High damping = signals die instantly
         'phase_wrap_thresh': 0.5, # Strict = ignores almost everyone
         'coupling_strength': 0.01,# Tiny coupling = almost no influence
-        'plasticity_rate': 0.0    # Manifold never learns
+        'plasticity_rate': 0.0,   # Manifold never learns
+        'gardening_interval': 20, # Slow gardening
+        'prune_thresh': 0.05,     # Loose pruning
+        'grow_prob': 0.001        # Rare growth
     }
 }
 
@@ -176,8 +185,12 @@ class SimulationRunner:
             
             # Progress output
             if verbose and (step + 1) % 50 == 0:
+                params = results.get('debug_params', {})
+                coup = params.get('coupling', self.config['coupling_strength'])
+                damp = params.get('damping', self.config['damping_factor'])
                 print(f"  Step {step+1}/{self.num_steps}: coherence={coherence:.3f}, "
-                      f"crystallizations={stats['crystallization_events']}")
+                      f"crystallizations={stats['crystallization_events']}, "
+                      f"Coup={coup:.3f}, Damp={damp:.3f}")
         
         stats['avg_coherence'] /= self.num_steps
         
